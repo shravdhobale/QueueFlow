@@ -20,6 +20,7 @@ const joinQueueSchema = z.object({
   customerPhone: z.string().min(10, "Phone number must be at least 10 digits"),
   serviceType: z.string().optional(),
   notes: z.string().optional(),
+  businessId: z.string(),
 });
 
 type JoinQueueFormData = z.infer<typeof joinQueueSchema>;
@@ -37,6 +38,7 @@ export default function JoinQueue() {
       customerPhone: "",
       serviceType: "",
       notes: "",
+      businessId: businessId || "",
     },
   });
 
@@ -51,8 +53,8 @@ export default function JoinQueue() {
   const joinQueueMutation = useMutation({
     mutationFn: async (data: JoinQueueFormData) => {
       const response = await apiRequest('POST', '/api/queue/join', {
-        businessId,
         ...data,
+        businessId,
       });
       return await response.json();
     },

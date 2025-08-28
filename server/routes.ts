@@ -141,17 +141,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/businesses/:id", async (req, res) => {
-    try {
-      const business = await storage.getBusiness(req.params.id);
-      if (!business) {
-        return res.status(404).json({ message: "Business not found" });
-      }
-      res.json(business);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch business" });
-    }
-  });
 
   app.post("/api/businesses", async (req, res) => {
     try {
@@ -191,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await sendSMSNotification(queueItem.customerPhone, message);
       }
       
-      res.status(201).json(queueItem);
+      res.status(201).json({ queueItem });
     } catch (error) {
       res.status(400).json({ message: "Failed to join queue" });
     }

@@ -27,7 +27,7 @@ interface Service {
 }
 
 interface ServiceTimeSettingsProps {
-  business: {
+  business?: {
     id: string;
     name: string;
     averageServiceTime: number;
@@ -36,6 +36,18 @@ interface ServiceTimeSettingsProps {
 }
 
 export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
+  if (!business) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">
+            <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>Loading business settings...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -45,13 +57,13 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
     resolver: zodResolver(serviceSchema),
     defaultValues: {
       name: "",
-      duration: business.averageServiceTime,
+      duration: business?.averageServiceTime || 25,
     },
   });
 
   const updateBusinessMutation = useMutation({
     mutationFn: async ({ averageServiceTime }: { averageServiceTime: number }) => {
-      const response = await apiRequest('PUT', `/api/business/${business.id}`, { averageServiceTime });
+      const response = await apiRequest('PUT', `/api/business/${business?.id}`, { averageServiceTime });
       return await response.json();
     },
     onSuccess: () => {
@@ -59,7 +71,7 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
         title: "Settings updated",
         description: "Default service time has been updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business?.id}`] });
     },
     onError: () => {
       toast({
@@ -72,7 +84,7 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
 
   const addServiceMutation = useMutation({
     mutationFn: async (serviceData: ServiceFormData) => {
-      const response = await apiRequest('POST', `/api/business/${business.id}/services`, serviceData);
+      const response = await apiRequest('POST', `/api/business/${business?.id}/services`, serviceData);
       return await response.json();
     },
     onSuccess: () => {
@@ -83,7 +95,7 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
       setIsDialogOpen(false);
       setEditingService(null);
       form.reset();
-      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business?.id}`] });
     },
     onError: () => {
       toast({
@@ -96,7 +108,7 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
 
   const updateServiceMutation = useMutation({
     mutationFn: async ({ serviceId, data }: { serviceId: string; data: ServiceFormData }) => {
-      const response = await apiRequest('PUT', `/api/business/${business.id}/services/${serviceId}`, data);
+      const response = await apiRequest('PUT', `/api/business/${business?.id}/services/${serviceId}`, data);
       return await response.json();
     },
     onSuccess: () => {
@@ -107,7 +119,7 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
       setIsDialogOpen(false);
       setEditingService(null);
       form.reset();
-      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business?.id}`] });
     },
     onError: () => {
       toast({
@@ -120,7 +132,7 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
 
   const deleteServiceMutation = useMutation({
     mutationFn: async (serviceId: string) => {
-      const response = await apiRequest('DELETE', `/api/business/${business.id}/services/${serviceId}`, {});
+      const response = await apiRequest('DELETE', `/api/business/${business?.id}/services/${serviceId}`, {});
       return await response.json();
     },
     onSuccess: () => {
@@ -128,7 +140,7 @@ export function ServiceTimeSettings({ business }: ServiceTimeSettingsProps) {
         title: "Service deleted",
         description: "Service has been removed successfully",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${business?.id}`] });
     },
     onError: () => {
       toast({
