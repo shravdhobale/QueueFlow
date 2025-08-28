@@ -68,6 +68,12 @@ export function CustomerJoinForm({ businessId, onSuccess }: CustomerJoinFormProp
       // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/businesses"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      // Invalidate all business-specific queries
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          query.queryKey[0] === "/api/businesses" || 
+          (typeof query.queryKey[1] === "string" && query.queryKey[1].includes("businesses"))
+      });
       if (businessId) {
         queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}`] });
       }

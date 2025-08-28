@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useLocation, Link } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ import {
   Phone,
   LogOut
 } from "lucide-react";
-import { Link } from "wouter";
+
 
 interface Customer {
   id: string;
@@ -59,7 +59,7 @@ const getCategoryIcon = (iconName: string) => {
     'Briefcase': Briefcase,
     'ShoppingBag': ShoppingBag,
   };
-  
+
   const IconComponent = iconMap[iconName] || Scissors;
   return <IconComponent className="h-8 w-8" />;
 };
@@ -73,7 +73,7 @@ const getCategoryColor = (iconName: string) => {
     'Briefcase': 'bg-blue-500',
     'ShoppingBag': 'bg-purple-500',
   };
-  
+
   return colorMap[iconName] || 'bg-primary';
 };
 
@@ -82,11 +82,12 @@ export default function CustomerDashboard() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const token = localStorage.getItem("customerToken");
     const customerData = localStorage.getItem("customerData");
-    
+
     if (!token || !customerData) {
       setLocation("/customer/login");
       return;
@@ -95,14 +96,29 @@ export default function CustomerDashboard() {
     try {
       const parsedCustomer = JSON.parse(customerData);
       setCustomer(parsedCustomer);
+      // Invalidate all queries when dashboard loads to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
     } catch (error) {
       setLocation("/customer/login");
     }
-  }, [setLocation]);
+  }, [setLocation, queryClient]);
 
-  const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>({
+  // Refresh data when user returns to the page
+  useEffect(() => {
+    const handleFocus = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [queryClient]);
+
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
     enabled: !!customer,
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: businesses, isLoading: businessesLoading } = useQuery<Business[]>({
@@ -266,7 +282,7 @@ export default function CustomerDashboard() {
                           {business.description}
                         </p>
                       )}
-                      
+
                       <div className="space-y-2 text-sm">
                         {business.address && (
                           <div className="flex items-center text-muted-foreground">
