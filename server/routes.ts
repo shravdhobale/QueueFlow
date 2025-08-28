@@ -98,6 +98,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Business routes
+  // Individual business lookup
+  app.get("/api/businesses/:id", async (req, res) => {
+    try {
+      const business = await storage.getBusiness(req.params.id);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      
+      const queue = await storage.getQueueByBusiness(req.params.id);
+      const businessWithQueue = {
+        ...business,
+        queueCount: queue.length,
+        currentWait: queue.length > 0 ? (queue[queue.length - 1].estimatedWait || 0) + (business.averageServiceTime || 25) : 0
+      };
+      
+      res.json(businessWithQueue);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch business" });
+    }
+  });
+
   app.get("/api/businesses", async (req, res) => {
     try {
       const businesses = await storage.getAllBusinesses();
@@ -459,6 +480,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard analytics
+  // Business management routes
+  app.put("/api/business/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const businessId = req.params.id;
+      const updates = req.body;
+      
+      const updatedBusiness = await storage.updateBusiness(businessId, updates);
+      if (!updatedBusiness) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      
+      res.json(updatedBusiness);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update business" });
+    }
+  });
+
+  app.post("/api/business/:id/services", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      // This would be implemented when we have proper service management
+      res.json({ message: "Service management not yet implemented" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add service" });
+    }
+  });
+
+  app.put("/api/business/:id/services/:serviceId", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      // This would be implemented when we have proper service management
+      res.json({ message: "Service management not yet implemented" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
+
+  app.delete("/api/business/:id/services/:serviceId", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      // This would be implemented when we have proper service management
+      res.json({ message: "Service management not yet implemented" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete service" });
+    }
+  });
+
   app.get("/api/dashboard/:businessId", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const businessId = req.params.businessId;

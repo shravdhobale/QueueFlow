@@ -1,5 +1,6 @@
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import { QueueDisplay } from "@/components/queue-display";
+import { ArrowLeft } from "lucide-react";
 
 export default function QueueStatus() {
   const params = useParams();
@@ -19,6 +20,12 @@ export default function QueueStatus() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-6">
+          <Link href="/" className="inline-flex items-center text-muted-foreground hover:text-foreground" data-testid="link-back-home">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
+        </div>
         <QueueDisplay queueItemId={queueItemId} />
       </div>
     </div>

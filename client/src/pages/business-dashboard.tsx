@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { BusinessAPI, QueueAPI } from "@/lib/api";
@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { EnhancedQueueList } from "@/components/enhanced-queue-list";
+import { ServiceTimeSettings } from "@/components/service-time-settings";
 import { NotificationToast } from "@/components/notification-toast";
-import { Users, Clock, CheckCircle, Play, Pause, UserPlus } from "lucide-react";
+import { Users, Clock, CheckCircle, Play, Pause, UserPlus, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WalkinFormData {
@@ -140,6 +141,12 @@ export default function BusinessDashboard() {
     <div className="min-h-screen bg-background">
       {/* Dashboard Header */}
       <div className="bg-card border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <Link href="/" className="inline-flex items-center text-muted-foreground hover:text-foreground" data-testid="link-back-home">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div>
@@ -321,6 +328,9 @@ export default function BusinessDashboard() {
                 </form>
               </CardContent>
             </Card>
+
+            {/* Service Time Settings */}
+            <ServiceTimeSettings business={business} />
 
             {/* Today's Overview */}
             <Card>

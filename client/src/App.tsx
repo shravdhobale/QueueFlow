@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
 import Home from "@/pages/home";
 import QueueStatus from "@/pages/queue-status";
+import JoinQueue from "@/pages/join-queue";
 import BusinessLogin from "@/pages/business-login";
 import BusinessDashboard from "@/pages/business-dashboard";
 import CustomerLogin from "@/pages/customer-login";
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/business/dashboard" component={BusinessDashboard} />
       <Route path="/customer/login" component={CustomerLogin} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
+      <Route path="/business/:id/join" component={JoinQueue} />
       <Route component={NotFound} />
     </Switch>
   );

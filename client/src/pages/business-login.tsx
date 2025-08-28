@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Lock } from "lucide-react";
+import { Link } from "wouter";
+import { Lock, ArrowLeft } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -57,7 +58,14 @@ export default function BusinessLogin() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md">
+        <div className="mb-4">
+          <Link href="/" className="inline-flex items-center text-muted-foreground hover:text-foreground" data-testid="link-back-home">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
+        </div>
+        <Card className="w-full">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center">
@@ -121,6 +129,7 @@ export default function BusinessLogin() {
           </Form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

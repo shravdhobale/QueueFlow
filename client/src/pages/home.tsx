@@ -24,7 +24,7 @@ export default function Home() {
                 </Button>
               </Link>
               <Link href="/business/login">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary" data-testid="button-business-login">
+                <Button size="lg" className="bg-white/20 text-white border border-white/30 hover:bg-white hover:text-primary backdrop-blur-sm" data-testid="button-business-login">
                   <BarChart3 className="h-5 w-5 mr-2" />
                   Business Login
                 </Button>
@@ -255,7 +255,7 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/business/login">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary" data-testid="button-cta-business">
+              <Button size="lg" className="bg-white/20 text-white border border-white/30 hover:bg-white hover:text-primary backdrop-blur-sm" data-testid="button-cta-business">
                 <BarChart3 className="h-5 w-5 mr-2" />
                 Start Your Business
               </Button>
