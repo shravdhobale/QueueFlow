@@ -1,0 +1,254 @@
+# Complete Replit Agent Prompt for QueueFlow
+
+Here's a comprehensive, optimized prompt using advanced prompting techniques for Replit Agent:
+
+***
+
+## **ROLE & CONTEXT**
+You are an expert full-stack developer tasked with building "QueueFlow" - a comprehensive queue management system for service-based businesses (salons, clinics, restaurants, auto shops, etc.). This system eliminates physical waiting rooms and reduces customer walkouts through real-time digital queue management.
+
+## **PROJECT SPECIFICATIONS**
+
+### **Core Functionality Requirements**
+Build a complete web application with these essential features:
+
+**CUSTOMER INTERFACE:**
+- Web-based check-in system (no app downloads required)
+- Real-time queue position display with auto-refresh
+- Dynamic wait time estimation
+- Live queue status via shareable link
+- SMS notifications (15-minute warning + "you're next" alerts)
+
+**BUSINESS DASHBOARD:**
+- Queue management panel (add/remove customers)
+- Real-time queue monitoring
+- Customer service time adjustment
+- Basic analytics (wait times, peak hours)
+- Queue pause/resume functionality
+
+**TECHNICAL REQUIREMENTS:**
+- Responsive design (mobile-first approach)
+- Real-time updates using WebSockets
+- SMS integration for notifications
+- Persistent data storage
+- Clean, intuitive UI/UX
+
+## **TECHNICAL ARCHITECTURE**
+
+### **Technology Stack (Mandatory)**
+```
+Frontend: React.js with Vite
+Backend: Node.js with Express.js
+Database: SQLite (for Replit compatibility)
+Real-time: Socket.io
+Styling: Tailwind CSS
+Notifications: Twilio API integration
+Authentication: JWT tokens
+```
+
+### **Project Structure**
+```
+queueflow/
+├── client/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   └── utils/
+├── server/
+│   ├── routes/
+│   ├── models/
+│   ├── middleware/
+│   └── services/
+└── database/
+```
+
+## **DETAILED IMPLEMENTATION PLAN**
+
+### **Phase 1: Core MVP (Focus on this first)**
+
+**Database Schema:**
+```sql
+-- Businesses table
+CREATE TABLE businesses (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Queues table
+CREATE TABLE queues (
+  id INTEGER PRIMARY KEY,
+  business_id INTEGER,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT,
+  position INTEGER,
+  estimated_wait INTEGER,
+  status TEXT DEFAULT 'waiting',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (business_id) REFERENCES businesses(id)
+);
+```
+
+**API Endpoints Required:**
+```
+POST /api/business/register - Register new business
+POST /api/queue/join - Customer joins queue
+GET /api/queue/:businessId - Get current queue status
+PUT /api/queue/:id/serve - Mark customer as served
+DELETE /api/queue/:id - Remove customer from queue
+GET /api/queue/:id/status - Get specific customer status
+```
+
+**Key Components to Build:**
+1. **CustomerJoinForm** - Queue check-in interface
+2. **QueueDisplay** - Real-time queue position view
+3. **BusinessDashboard** - Queue management interface
+4. **QueueList** - Live queue visualization
+5. **NotificationService** - SMS integration handler
+
+### **Essential Features Implementation**
+
+**Real-time Updates:**
+- Implement Socket.io for live queue position updates
+- Auto-refresh customer queue view every 30 seconds
+- Broadcast queue changes to all connected clients
+
+**SMS Notifications:**
+- Integrate Twilio API for SMS sending
+- Send notification when customer is 15 minutes away
+- Send "You're next" notification
+- Include queue link in SMS messages
+
+**Wait Time Calculation:**
+- Track average service time per business
+- Calculate estimated wait based on queue position
+- Update estimates dynamically as queue moves
+
+## **USER EXPERIENCE FLOWS**
+
+### **Customer Journey:**
+1. Customer visits business website/QR code
+2. Fills out check-in form (name, phone)
+3. Receives confirmation with queue link
+4. Views real-time position and wait time
+5. Gets SMS notifications at key moments
+6. Arrives when notified
+
+### **Business Journey:**
+1. Business registers/logs into dashboard
+2. Views current queue in real-time
+3. Marks customers as "served" when done
+4. Adds walk-in customers manually
+5. Monitors queue analytics
+
+## **UI/UX REQUIREMENTS**
+
+**Design Principles:**
+- Clean, minimal interface
+- Large, readable text and buttons
+- Mobile-responsive (80% of users will be mobile)
+- Fast loading times
+- Intuitive navigation
+
+**Color Scheme:**
+- Primary: Modern blue (#3B82F6)
+- Success: Green (#10B981)
+- Warning: Orange (#F59E0B)
+- Error: Red (#EF4444)
+- Background: Light gray (#F9FAFB)
+
+**Key Screens:**
+1. Landing page with business selection
+2. Customer check-in form
+3. Queue status display (customer view)
+4. Business login page
+5. Business dashboard with queue management
+
+## **CONSTRAINTS & REQUIREMENTS**
+
+**Must Haves:**
+- ✅ Works on mobile devices
+- ✅ Real-time updates without page refresh
+- ✅ SMS notification system
+- ✅ Persistent data storage
+- ✅ Simple, intuitive interface
+- ✅ Queue position tracking
+
+**Performance Requirements:**
+- Page load time < 3 seconds
+- Real-time update latency < 1 second
+- Support for 100+ concurrent users per business
+
+**Security Requirements:**
+- Input validation and sanitization
+- Rate limiting on API endpoints
+- Secure SMS API key storage
+- Basic authentication for business dashboard
+
+## **SPECIFIC CODING INSTRUCTIONS**
+
+**Code Quality Standards:**
+- Use modern ES6+ JavaScript syntax
+- Implement proper error handling
+- Add console logging for debugging
+- Comment complex business logic
+- Use semantic HTML elements
+- Follow REST API conventions
+
+**Testing Requirements:**
+- Test all API endpoints
+- Verify real-time functionality
+- Test SMS integration (use test numbers)
+- Validate mobile responsiveness
+- Check queue position accuracy
+
+## **DELIVERABLES CHECKLIST**
+
+Create a fully functional web application that includes:
+
+- [ ] Complete React frontend with responsive design
+- [ ] Node.js/Express backend with all API endpoints
+- [ ] SQLite database with proper schema
+- [ ] Socket.io real-time functionality
+- [ ] Twilio SMS integration
+- [ ] Business registration and login
+- [ ] Customer queue joining and tracking
+- [ ] Queue management dashboard
+- [ ] Mobile-optimized interface
+- [ ] Basic error handling and validation
+
+**Success Criteria:**
+The application should allow a customer to join a queue via web form, see their real-time position, receive SMS notifications, while businesses can manage their queue through a dashboard interface.
+
+## **FINAL INSTRUCTIONS**
+
+1. **Start with the MVP features first** - get basic queue functionality working
+2. **Test frequently** - verify each feature as you build it
+3. **Use placeholder data** initially to speed development
+4. **Focus on core user flows** before adding advanced features
+5. **Ensure mobile compatibility** throughout development
+6. **Document any setup requirements** for running the application
+
+**Priority Order:**
+1. Database setup and basic API
+2. Customer check-in and queue display
+3. Business dashboard for queue management
+4. Real-time updates with Socket.io
+5. SMS notifications integration
+6. UI/UX polish and mobile optimization
+
+Build this as a production-ready application that a real business could use immediately upon deployment.
+
+***
+
+This prompt uses advanced techniques including:
+- **Role definition** for context setting
+- **Structured requirements** with clear hierarchies  
+- **Specific technical constraints** to guide decisions
+- **Step-by-step implementation plan** for clarity
+- **Success criteria** for validation
+- **Prioritized deliverables** for focused development
+- **Detailed schemas and examples** for concrete guidance
+- **Constraint-based prompting** to ensure quality standards
