@@ -21,9 +21,9 @@ export default function QueueStatus() {
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-6">
-          <Link href="/" className="inline-flex items-center text-muted-foreground hover:text-foreground" data-testid="link-back-home">
+          <Link href="/customer/dashboard" className="inline-flex items-center text-muted-foreground hover:text-foreground" data-testid="link-back-dashboard">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            Back to Dashboard
           </Link>
         </div>
         <QueueDisplay queueItemId={queueItemId} />

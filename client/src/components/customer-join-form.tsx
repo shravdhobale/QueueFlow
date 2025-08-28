@@ -34,12 +34,24 @@ export function CustomerJoinForm({ businessId, onSuccess }: CustomerJoinFormProp
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Get customer data from localStorage
+  const getCustomerData = () => {
+    try {
+      const customerData = localStorage.getItem("customerData");
+      return customerData ? JSON.parse(customerData) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const customerData = getCustomerData();
+
   const form = useForm<JoinQueueFormData>({
     resolver: zodResolver(joinQueueSchema),
     defaultValues: {
       businessId: businessId || "",
-      customerName: "",
-      customerPhone: "",
+      customerName: customerData?.name || "",
+      customerPhone: customerData?.phone || "",
       serviceType: "",
       notes: "",
       smsConsent: false,
@@ -53,7 +65,12 @@ export function CustomerJoinForm({ businessId, onSuccess }: CustomerJoinFormProp
         title: "Successfully joined the queue!",
         description: `You're #${data.position} in line. We'll send you SMS updates.`,
       });
+      // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/businesses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      if (businessId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}`] });
+      }
       onSuccess(data.id);
     },
     onError: () => {

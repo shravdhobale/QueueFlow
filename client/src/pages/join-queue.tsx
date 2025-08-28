@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation, Link } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,11 +31,23 @@ export default function JoinQueue() {
   const { toast } = useToast();
   const businessId = params.id;
   
+  // Get customer data from localStorage
+  const getCustomerData = () => {
+    try {
+      const customerData = localStorage.getItem("customerData");
+      return customerData ? JSON.parse(customerData) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const customerData = getCustomerData();
+  
   const form = useForm<JoinQueueFormData>({
     resolver: zodResolver(joinQueueSchema),
     defaultValues: {
-      customerName: "",
-      customerPhone: "",
+      customerName: customerData?.name || "",
+      customerPhone: customerData?.phone || "",
       serviceType: "",
       notes: "",
       businessId: businessId || "",
@@ -50,6 +62,8 @@ export default function JoinQueue() {
 
   const businessData = business as any;
 
+  const queryClient = useQueryClient();
+
   const joinQueueMutation = useMutation({
     mutationFn: async (data: JoinQueueFormData) => {
       const response = await apiRequest('POST', '/api/queue/join', {
@@ -59,6 +73,10 @@ export default function JoinQueue() {
       return await response.json();
     },
     onSuccess: (data) => {
+      // Invalidate business and category queries to refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      
       toast({
         title: "Successfully joined queue",
         description: "You'll receive SMS updates about your position",
