@@ -1,0 +1,358 @@
+ENHANCEMENT REQUEST: QueueFlow Platform Updates
+Current State Analysis:
+
+✅ Basic store listing with queue info works
+
+✅ Customer queue joining form functions
+
+✅ Business dashboard UI exists
+
+❌ Missing 15-minute notifications
+
+❌ Active queue management not functional
+
+❌ No proper homepage or customer login system
+
+❌ No approval workflow for queue entries
+
+REQUIRED CHANGES & NEW FEATURES
+1. CREATE PROPER HOMEPAGE
+Requirements:
+Build a professional landing page that explains QueueFlow's value proposition
+
+Content Structure:
+
+text
+Header Section:
+- Logo and navigation (Home, How it Works, For Businesses, Login)
+- Hero headline: "Skip the Wait, Not the Service"
+- Subheadline: "Join queues digitally and get notified when it's your turn"
+- Two CTA buttons: "Find Services" (customers) + "Business Login"
+
+How It Works Section:
+- Step 1: "Choose Your Service" (icon + description)
+- Step 2: "Join the Queue" (icon + description) 
+- Step 3: "Get Notified" (icon + description)
+- Step 4: "Arrive on Time" (icon + description)
+
+Features Section:
+- "Real-time Queue Updates"
+- "Smart Notifications" 
+- "No More Waiting Rooms"
+- "Multi-business Support"
+
+For Businesses Section:
+- "Reduce No-shows by 40%"
+- "Improve Customer Satisfaction"
+- "Manage Queues Digitally"
+- "Analytics & Insights"
+Design Requirements:
+
+Clean, modern design with plenty of white space
+
+Mobile-responsive layout
+
+Professional color scheme (blue/white/gray)
+
+Clear call-to-action buttons
+
+Trust signals (customer testimonials or stats)
+
+2. IMPLEMENT CUSTOMER LOGIN & CATEGORY SYSTEM
+Customer Authentication Flow:
+
+text
+1. Customer Registration/Login Page
+   - Email/phone + password login
+   - "Sign up" option for new customers
+   - Social login options (Google/Facebook) if possible
+
+2. Customer Dashboard After Login
+   - Welcome message with customer name
+   - Search bar for services/businesses
+   - Category grid layout (6-8 main categories)
+
+3. Category Organization
+   Categories to create:
+   - Beauty & Wellness (salons, spas, barbershops)
+   - Healthcare (clinics, dental, physiotherapy)
+   - Automotive (car service, repair shops)
+   - Restaurants & Food (cafes, restaurants)
+   - Professional Services (banks, government offices)
+   - Retail & Shopping (stores with service counters)
+
+4. Shop Listing Within Categories
+   - Grid/list view of businesses in selected category
+   - Show: business name, rating, current queue length, estimated wait
+   - Filter options: distance, wait time, ratings
+   - Search within category
+Database Schema Updates:
+
+sql
+-- Add customer authentication
+CREATE TABLE customers (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE,
+    phone TEXT UNIQUE,
+    password_hash TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add categories
+CREATE TABLE categories (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    icon TEXT,
+    description TEXT
+);
+
+-- Update businesses table
+ALTER TABLE businesses ADD COLUMN category_id INTEGER;
+ALTER TABLE businesses ADD COLUMN rating DECIMAL(2,1) DEFAULT 0.0;
+ALTER TABLE businesses ADD COLUMN description TEXT;
+
+-- Update queues table for customer relationship
+ALTER TABLE queues ADD COLUMN customer_id INTEGER;
+ALTER TABLE queues ADD COLUMN approved BOOLEAN DEFAULT false;
+ALTER TABLE queues ADD COLUMN approved_at DATETIME;
+3. ENHANCE BUSINESS QUEUE MANAGEMENT
+Fix Active Queue Functionality:
+
+text
+Current Queue Management Panel Should Display:
+- List of all customers in queue (approved + pending)
+- Each row shows:
+  * Position number
+  * Customer name & phone
+  * Service requested  
+  * Join time
+  * Status (Pending Approval / Approved / In Service / Completed)
+  * Action buttons (Approve/Reject, Start Service, Mark Complete)
+
+Queue Management Actions:
+1. "Approve Customer" button
+   - Changes status from pending to approved
+   - Assigns estimated service time
+   - Sends approval notification to customer
+   - Updates queue positions for all customers
+
+2. "Start Service" button  
+   - Changes status to "In Service"
+   - Starts service timer
+   - Sends "Your turn now" notification
+
+3. "Mark Complete" button
+   - Removes from active queue
+   - Updates statistics
+   - Sends completion notification
+Business Service Time Management:
+
+text
+Add Service Configuration:
+- Business can set standard service times per service type
+- Example: "Haircut - 30 mins", "Oil Change - 45 mins"
+- These times are used for wait time calculations
+- Business can adjust individual appointment times
+
+Service Time Interface:
+- Dropdown to select standard time OR
+- Manual input field for custom duration
+- Time gets added when customer is approved
+4. IMPLEMENT NOTIFICATION SYSTEM
+Notification Triggers & Messages:
+
+javascript
+Notification Events:
+1. Queue Join Confirmation
+   "Thanks {name}! You're added to the queue at {business}. You'll be notified when approved."
+
+2. Business Approval Notification  
+   "Great news {name}! {business} has approved your queue request. Your estimated wait time is {time}. You'll get notified 15 minutes before your turn."
+
+3. 15-Minute Warning
+   "Hi {name}, you're about 15 minutes away from your appointment at {business}. Please start heading over!"
+
+4. Your Turn Alert
+   "Hi {name}, it's your turn at {business}! Please arrive now for your {service}."
+
+5. Service Started
+   "Your {service} has started at {business}. Estimated completion: {time}."
+Implementation Requirements:
+
+Use email notifications (easier to implement than SMS initially)
+
+Add notification preferences in customer profile
+
+Store notification history in database
+
+Real-time browser notifications when customer is on queue page
+
+5. UPDATE USER FLOWS
+New Customer Journey:
+
+Visit homepage → Learn about service
+
+Click "Find Services" → Register/Login
+
+Browse categories → Select category
+
+View businesses → Choose business
+
+Join queue → Wait for approval notification
+
+Get approved → Receive timing notifications
+
+Arrive on time → Complete service
+
+Enhanced Business Journey:
+
+Login to dashboard → View pending queue requests
+
+Review customer details → Approve/reject with timing
+
+Manage active queue → Start service when customer arrives
+
+Mark service complete → Customer notified & removed from queue
+
+View daily analytics → Track performance metrics
+
+TECHNICAL IMPLEMENTATION REQUIREMENTS
+Priority Order for Development:
+Homepage Creation (2-3 hours)
+
+Design and build landing page
+
+Add navigation and routing
+
+Customer Authentication (3-4 hours)
+
+Build login/signup forms
+
+Implement JWT authentication
+
+Create customer dashboard
+
+Category System (2-3 hours)
+
+Create category database and API
+
+Build category browsing interface
+
+Organize existing businesses into categories
+
+Queue Approval Workflow (4-5 hours)
+
+Update queue management logic
+
+Build approval interface for businesses
+
+Implement status tracking
+
+Notification System (3-4 hours)
+
+Set up email service (Resend/SendGrid)
+
+Create notification templates
+
+Implement timing logic for 15-min warnings
+
+Key Components to Build/Update:
+New Components:
+
+Homepage - Landing page with value proposition
+
+CustomerLogin - Authentication forms
+
+CustomerDashboard - Category browsing interface
+
+CategoryGrid - Service category display
+
+BusinessList - Businesses within category
+
+QueueApproval - Business approval interface
+
+NotificationService - Email notification handler
+
+Components to Update:
+
+BusinessDashboard - Fix active queue display
+
+QueueList - Add approval status and actions
+
+CustomerQueue - Show approval status to customers
+
+API Endpoints to Add/Update:
+text
+Customer Authentication:
+POST /api/auth/customer/register
+POST /api/auth/customer/login
+GET /api/auth/customer/profile
+
+Category & Business:
+GET /api/categories - List all categories
+GET /api/categories/{id}/businesses - Businesses in category
+GET /api/businesses/{id}/details - Detailed business info
+
+Queue Management:
+PUT /api/queue/{id}/approve - Business approves customer
+PUT /api/queue/{id}/start-service - Mark service started  
+PUT /api/queue/{id}/complete - Mark service completed
+GET /api/queue/{id}/status - Customer checks approval status
+
+Notifications:
+POST /api/notifications/send - Send notification
+GET /api/customer/{id}/notifications - Customer notification history
+SUCCESS CRITERIA
+Homepage Success:
+
+✅ Professional landing page that clearly explains the service
+
+✅ Clear navigation to customer and business portals
+
+✅ Mobile-responsive design
+
+Customer Experience Success:
+
+✅ Customers can register/login successfully
+
+✅ Category browsing works smoothly
+
+✅ Queue joining requires approval
+
+✅ Customers receive proper notifications
+
+Business Management Success:
+
+✅ Queue management panel shows all pending/active customers
+
+✅ Businesses can approve customers with timing
+
+✅ Service time management works properly
+
+✅ Queue status updates in real-time
+
+Notification Success:
+
+✅ Approval notifications sent immediately
+
+✅ 15-minute warnings calculated and sent correctly
+
+✅ "Your turn" alerts sent when service starts
+
+FINAL DELIVERABLE
+A fully functional queue management platform with:
+
+Professional homepage explaining the service
+
+Customer registration/login with category-based business browsing
+
+Business approval workflow with service time management
+
+Comprehensive notification system
+
+Real-time queue status updates
+
+Mobile-responsive design throughout
+
+The result should be a complete platform where customers discover services through categories, businesses manage queues with approval workflows, and everyone receives timely notifications about queue status.
