@@ -79,13 +79,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const businessId = url.searchParams.get('businessId');
 
+    console.log(`WebSocket connection attempt - BusinessId: ${businessId}`);
+
     if (businessId) {
       if (!wsClients.has(businessId)) {
         wsClients.set(businessId, new Set());
       }
       wsClients.get(businessId)!.add(ws);
+      console.log(`WebSocket connected for business: ${businessId}`);
 
       ws.on('close', () => {
+        console.log(`WebSocket disconnected for business: ${businessId}`);
         const clients = wsClients.get(businessId);
         if (clients) {
           clients.delete(ws);
@@ -94,6 +98,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       });
+
+      ws.on('error', (error) => {
+        console.log(`WebSocket error for business ${businessId}:`, error);
+      });
+    } else {
+      console.log('WebSocket connection without businessId, closing...');
+      ws.close();
     }
   });
 

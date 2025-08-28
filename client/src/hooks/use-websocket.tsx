@@ -8,20 +8,32 @@ interface UseWebSocketOptions {
 export function useWebSocket({ businessId, onMessage }: UseWebSocketOptions) {
   const ws = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
-    if (!businessId) return;
+    if (!businessId) {
+      setIsConnected(false);
+      return;
+    }
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws?businessId=${businessId}`;
     
     let reconnectTimer: NodeJS.Timeout;
+    let isCleanupCalled = false;
+    
     const connect = () => {
+      if (isCleanupCalled || reconnectAttempts.current >= maxReconnectAttempts) {
+        return;
+      }
+
       try {
         ws.current = new WebSocket(wsUrl);
 
         ws.current.onopen = () => {
           setIsConnected(true);
+          reconnectAttempts.current = 0;
           console.log('WebSocket connected');
         };
 
@@ -34,18 +46,26 @@ export function useWebSocket({ businessId, onMessage }: UseWebSocketOptions) {
           }
         };
 
-        ws.current.onclose = () => {
+        ws.current.onclose = (event) => {
           setIsConnected(false);
-          console.log('WebSocket disconnected, attempting to reconnect...');
           
-          // Reconnect after 2 seconds
-          reconnectTimer = setTimeout(() => {
-            connect();
-          }, 2000);
+          if (!isCleanupCalled && reconnectAttempts.current < maxReconnectAttempts) {
+            console.log('WebSocket disconnected, attempting to reconnect...');
+            reconnectAttempts.current++;
+            
+            // Exponential backoff: 2s, 4s, 8s, 16s, 32s
+            const delay = Math.min(2000 * Math.pow(2, reconnectAttempts.current - 1), 30000);
+            
+            reconnectTimer = setTimeout(() => {
+              connect();
+            }, delay);
+          }
         };
 
         ws.current.onerror = (error) => {
-          console.warn('WebSocket connection failed, will retry');
+          if (!isCleanupCalled) {
+            console.warn('WebSocket connection failed, will retry');
+          }
           setIsConnected(false);
         };
       } catch (error) {
@@ -57,12 +77,14 @@ export function useWebSocket({ businessId, onMessage }: UseWebSocketOptions) {
     connect();
 
     return () => {
+      isCleanupCalled = true;
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
       }
-      if (ws.current) {
+      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
         ws.current.close();
       }
+      setIsConnected(false);
     };
   }, [businessId, onMessage]);
 
