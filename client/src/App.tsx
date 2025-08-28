@@ -10,6 +10,8 @@ import Home from "@/pages/home";
 import QueueStatus from "@/pages/queue-status";
 import BusinessLogin from "@/pages/business-login";
 import BusinessDashboard from "@/pages/business-dashboard";
+import CustomerLogin from "@/pages/customer-login";
+import CustomerDashboard from "@/pages/customer-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Navigation() {
@@ -58,6 +60,8 @@ function Router() {
       <Route path="/queue/:id" component={QueueStatus} />
       <Route path="/business/login" component={BusinessLogin} />
       <Route path="/business/dashboard" component={BusinessDashboard} />
+      <Route path="/customer/login" component={CustomerLogin} />
+      <Route path="/customer/dashboard" component={CustomerDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

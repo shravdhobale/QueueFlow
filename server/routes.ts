@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertQueueSchema, insertBusinessSchema, insertUserSchema } from "@shared/schema";
+import { insertQueueSchema, insertBusinessSchema, insertUserSchema, insertCustomerSchema, insertCategorySchema } from "@shared/schema";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
@@ -296,11 +296,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer authentication routes
+  app.post("/api/auth/customer/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const customer = await storage.getCustomerByEmail(email);
+      
+      if (!customer || !customer.passwordHash || !bcrypt.compareSync(password, customer.passwordHash)) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const token = jwt.sign(
+        { id: customer.id, email: customer.email, type: 'customer' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({ 
+        token, 
+        customer: { 
+          id: customer.id, 
+          name: customer.name, 
+          email: customer.email, 
+          phone: customer.phone 
+        } 
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/customer/register", async (req, res) => {
+    try {
+      const validated = insertCustomerSchema.parse(req.body);
+      const hashedPassword = bcrypt.hashSync(validated.password!, 10);
+      
+      const customer = await storage.createCustomer({
+        ...validated,
+        passwordHash: hashedPassword
+      });
+
+      const token = jwt.sign(
+        { id: customer.id, email: customer.email, type: 'customer' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.status(201).json({ 
+        token, 
+        customer: { 
+          id: customer.id, 
+          name: customer.name, 
+          email: customer.email, 
+          phone: customer.phone 
+        } 
+      });
+    } catch (error) {
+      res.status(400).json({ message: "Registration failed" });
+    }
+  });
+
+  // Category routes
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await storage.getAllCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.get("/api/categories/:categoryId/businesses", async (req, res) => {
+    try {
+      const businesses = await storage.getBusinessesByCategory(req.params.categoryId);
+      
+      // Add queue info for each business
+      const businessesWithQueue = await Promise.all(
+        businesses.map(async (business) => {
+          const queue = await storage.getQueueByBusiness(business.id);
+          return {
+            ...business,
+            queueCount: queue.length,
+            currentWait: queue.length > 0 ? (queue[queue.length - 1].estimatedWait || 0) + (business.averageServiceTime || 25) : 0
+          };
+        })
+      );
+      
+      res.json(businessesWithQueue);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch businesses" });
+    }
+  });
+
+  // Enhanced queue management routes
+  app.put("/api/queue/:id/approve", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { estimatedServiceTime } = req.body;
+      const queueItem = await storage.approveQueueItem(req.params.id, estimatedServiceTime);
+      
+      if (!queueItem) {
+        return res.status(404).json({ message: "Queue item not found" });
+      }
+
+      // Broadcast queue update
+      const updatedQueue = await storage.getQueueByBusiness(queueItem.businessId);
+      broadcastToClients(queueItem.businessId, {
+        type: 'queue_updated',
+        queue: updatedQueue
+      });
+
+      // Send approval SMS
+      const business = await storage.getBusiness(queueItem.businessId);
+      if (business && queueItem.customerPhone) {
+        const message = `Great news! ${business.name} has approved your queue request. Your estimated wait time is ${queueItem.estimatedWait} minutes. You'll get notified 15 minutes before your turn.`;
+        await sendSMSNotification(queueItem.customerPhone, message);
+      }
+
+      res.json(queueItem);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to approve queue item" });
+    }
+  });
+
+  app.put("/api/queue/:id/start-service", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const updatedItem = await storage.updateQueueItem(req.params.id, {
+        status: "in_service",
+        serviceStartedAt: new Date().toISOString()
+      });
+
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Queue item not found" });
+      }
+
+      // Broadcast queue update
+      const updatedQueue = await storage.getQueueByBusiness(updatedItem.businessId);
+      broadcastToClients(updatedItem.businessId, {
+        type: 'queue_updated',
+        queue: updatedQueue
+      });
+
+      // Send "your turn" SMS
+      const business = await storage.getBusiness(updatedItem.businessId);
+      if (business && updatedItem.customerPhone) {
+        const message = `Hi ${updatedItem.customerName}, it's your turn at ${business.name}! Please arrive now for your ${updatedItem.serviceType || 'service'}.`;
+        await sendSMSNotification(updatedItem.customerPhone, message);
+      }
+
+      res.json(updatedItem);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to start service" });
+    }
+  });
+
+  app.get("/api/business/:businessId/pending-queue", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const pendingQueue = await storage.getPendingQueueByBusiness(req.params.businessId);
+      res.json(pendingQueue);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pending queue" });
+    }
+  });
+
   // Dashboard analytics
   app.get("/api/dashboard/:businessId", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const businessId = req.params.businessId;
       const queue = await storage.getQueueByBusiness(businessId);
+      const pendingQueue = await storage.getPendingQueueByBusiness(businessId);
       const business = await storage.getBusiness(businessId);
       
       if (!business) {
@@ -309,12 +472,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const stats = {
         queueLength: queue.length,
+        pendingCount: pendingQueue.length,
         avgWaitTime: business.averageServiceTime,
         servedToday: 24, // This would come from a more complex query in a real DB
         status: business.isActive ? 'ACTIVE' : 'INACTIVE'
       };
 
-      res.json({ queue, business, stats });
+      res.json({ queue, pendingQueue, business, stats });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard data" });
     }

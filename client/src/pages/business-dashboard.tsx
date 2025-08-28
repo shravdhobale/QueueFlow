@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { QueueList } from "@/components/queue-list";
+import { EnhancedQueueList } from "@/components/enhanced-queue-list";
 import { NotificationToast } from "@/components/notification-toast";
 import { Users, Clock, CheckCircle, Play, Pause, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -178,9 +178,12 @@ export default function BusinessDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">People in Queue</p>
+                  <p className="text-sm text-muted-foreground">Active Queue</p>
                   <p className="text-3xl font-bold text-foreground" data-testid="text-queue-length">
                     {stats?.queueLength || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    +{stats?.pendingCount || 0} pending
                   </p>
                 </div>
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center">
@@ -269,7 +272,11 @@ export default function BusinessDashboard() {
                 </div>
               </div>
 
-              <QueueList queue={queue} businessId={user.businessId} />
+              <EnhancedQueueList 
+                approvedQueue={queue || []} 
+                pendingQueue={dashboardData?.pendingQueue || []}
+                businessId={user.businessId} 
+              />
             </CardContent>
           </Card>
 
