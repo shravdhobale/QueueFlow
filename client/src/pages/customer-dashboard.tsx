@@ -50,13 +50,7 @@ interface Business {
   averageServiceTime: number;
 }
 
-const getCategoryIcon = (iconPath: string | null) => {
-  // If icon path is provided (image), return an img element
-  if (iconPath && iconPath.startsWith('/attached_assets')) {
-    return <img src={iconPath} alt="Category" className="w-full h-full object-cover rounded-lg" />;
-  }
-  
-  // Fallback to icon mapping for backwards compatibility
+const getCategoryIcon = (iconName: string | null) => {
   const iconMap: Record<string, any> = {
     'Scissors': Scissors,
     'Stethoscope': Stethoscope,
@@ -66,7 +60,7 @@ const getCategoryIcon = (iconPath: string | null) => {
     'ShoppingBag': ShoppingBag,
   };
 
-  const IconComponent = iconMap[iconPath || 'Scissors'] || Scissors;
+  const IconComponent = iconMap[iconName || 'Scissors'] || Scissors;
   return <IconComponent className="h-8 w-8" />;
 };
 
@@ -208,7 +202,7 @@ export default function CustomerDashboard() {
                     data-testid={`card-category-${category.id}`}
                   >
                     <CardContent className="p-6 text-center">
-                      <div className="bg-white border border-border rounded-xl w-20 h-20 flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                      <div className={`${getCategoryColor(category.icon || '')} text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4`}>
                         {getCategoryIcon(category.icon)}
                       </div>
                       <h3 className="text-xl font-semibold mb-2" data-testid={`text-category-name-${category.id}`}>

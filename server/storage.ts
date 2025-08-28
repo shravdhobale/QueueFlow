@@ -56,36 +56,36 @@ export class MemStorage implements IStorage {
   }
 
   private async initializeSampleData() {
-    // Create categories first with images
+    // Create categories first with proper icons
     const sampleCategories = [
       {
         name: "Beauty & Wellness",
-        icon: "/attached_assets/generated_images/Beauty_salon_interior_54a1509b.png",
+        icon: "Scissors",
         description: "Salons, spas, barbershops, and beauty services"
       },
       {
         name: "Healthcare",
-        icon: "/attached_assets/generated_images/Healthcare_clinic_interior_b91b4120.png", 
+        icon: "Stethoscope", 
         description: "Clinics, dental offices, physiotherapy"
       },
       {
         name: "Automotive",
-        icon: "/attached_assets/generated_images/Auto_repair_garage_28c6fd86.png",
+        icon: "Wrench",
         description: "Car service centers, repair shops"
       },
       {
         name: "Restaurants & Food",
-        icon: "/attached_assets/generated_images/Restaurant_dining_room_9e08b8da.png",
+        icon: "UtensilsCrossed",
         description: "Restaurants, cafes, food services"
       },
       {
         name: "Professional Services",
-        icon: "/attached_assets/generated_images/Professional_office_interior_0126e91f.png",
+        icon: "Briefcase",
         description: "Banks, government offices, consulting"
       },
       {
         name: "Retail & Shopping",
-        icon: "/attached_assets/generated_images/Retail_store_interior_a4ff0185.png",
+        icon: "ShoppingBag",
         description: "Stores with service counters"
       }
     ];
@@ -566,6 +566,36 @@ export class MemStorage implements IStorage {
 
   async createBusiness(business: InsertBusiness): Promise<Business> {
     const id = randomUUID();
+    
+    // Get category to determine default services
+    const category = this.categories.get(business.categoryId || '');
+    let defaultServices: string[] = [];
+    
+    if (category) {
+      switch (category.name) {
+        case "Beauty & Wellness":
+          defaultServices = ["Haircut", "Styling", "Hair Coloring", "Trim", "Blowout", "Treatment"];
+          break;
+        case "Healthcare":
+          defaultServices = ["Consultation", "Checkup", "Treatment", "Examination", "Follow-up"];
+          break;
+        case "Automotive":
+          defaultServices = ["Oil Change", "Tire Service", "Brake Inspection", "Engine Repair", "Diagnostics"];
+          break;
+        case "Restaurants & Food":
+          defaultServices = ["Dining", "Takeout", "Catering", "Delivery", "Special Orders"];
+          break;
+        case "Professional Services":
+          defaultServices = ["Consultation", "Document Processing", "Account Service", "Advisory"];
+          break;
+        case "Retail & Shopping":
+          defaultServices = ["Purchase", "Customer Service", "Returns", "Special Orders"];
+          break;
+        default:
+          defaultServices = ["Service", "Consultation"];
+      }
+    }
+    
     const newBusiness: Business = {
       ...business,
       id,
@@ -576,6 +606,7 @@ export class MemStorage implements IStorage {
       description: business.description || null,
       averageServiceTime: business.averageServiceTime || 25,
       isActive: business.isActive ?? true,
+      services: business.services || defaultServices,
       createdAt: new Date().toISOString(),
     };
     this.businesses.set(id, newBusiness);
@@ -722,6 +753,32 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, user);
     return user;
+  }
+
+  // Admin methods
+  async authenticateAdmin(username: string, password: string): Promise<boolean> {
+    // Simple admin authentication - in production, use proper hashing
+    return username === 'admin' && password === 'admin123';
+  }
+
+  async getAnalytics(): Promise<any> {
+    const totalBusinesses = this.businesses.size;
+    const activeQueues = Array.from(this.queues.values()).filter(queue => queue.status === 'approved' || queue.status === 'in_service').length;
+    const totalCustomers = this.customers.size;
+    
+    return {
+      totalBusinesses,
+      activeQueues,
+      totalCustomers
+    };
+  }
+
+  async deleteBusiness(id: string): Promise<boolean> {
+    const deleted = this.businesses.delete(id);
+    // Also cleanup related queue items
+    const queuesToDelete = Array.from(this.queues.values()).filter(q => q.businessId === id);
+    queuesToDelete.forEach(queue => this.queues.delete(queue.id));
+    return deleted;
   }
 }
 

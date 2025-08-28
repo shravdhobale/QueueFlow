@@ -13,6 +13,8 @@ import BusinessLogin from "@/pages/business-login";
 import BusinessDashboard from "@/pages/business-dashboard";
 import CustomerLogin from "@/pages/customer-login";
 import CustomerDashboard from "@/pages/customer-dashboard";
+import AdminLogin from "@/pages/admin-login";
+import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Navigation() {
@@ -47,6 +49,15 @@ function Navigation() {
                 Business Dashboard
               </Button>
             </Link>
+            <Link href="/admin/login" data-testid="link-admin-view">
+              <Button
+                variant={location.startsWith("/admin") ? "default" : "outline"}
+                size="sm"
+                className="transition-colors bg-red-600 hover:bg-red-700 text-white"
+              >
+                Admin Panel
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -63,6 +74,8 @@ function Router() {
       <Route path="/business/dashboard" component={BusinessDashboard} />
       <Route path="/customer/login" component={CustomerLogin} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/business/:id/join" component={JoinQueue} />
       <Route component={NotFound} />
     </Switch>

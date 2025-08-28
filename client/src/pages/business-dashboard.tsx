@@ -312,10 +312,14 @@ export default function BusinessDashboard() {
                       <SelectValue placeholder="Select Service" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="haircut">Haircut</SelectItem>
-                      <SelectItem value="styling">Styling</SelectItem>
-                      <SelectItem value="coloring">Coloring</SelectItem>
-                      <SelectItem value="consultation">Consultation</SelectItem>
+                      {business?.services?.map((service: string) => (
+                        <SelectItem key={service} value={service}>
+                          {service}
+                        </SelectItem>
+                      )) || [
+                        <SelectItem key="service1" value="Service">Service</SelectItem>,
+                        <SelectItem key="service2" value="Consultation">Consultation</SelectItem>
+                      ]}
                     </SelectContent>
                   </Select>
                   <Button

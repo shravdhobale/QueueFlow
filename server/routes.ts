@@ -379,6 +379,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin authentication routes
+  app.post("/api/auth/admin/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
+      }
+
+      const isValid = await storage.authenticateAdmin(username, password);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid admin credentials" });
+      }
+
+      const token = jwt.sign(
+        { userId: 'admin', role: 'admin' },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      res.json({
+        token,
+        user: {
+          id: 'admin',
+          username: 'admin',
+          role: 'admin',
+        },
+      });
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Admin business management routes
+  app.get("/api/admin/businesses", async (req, res) => {
+    try {
+      const allBusinesses = Array.from((storage as any).businesses.values());
+      res.json(allBusinesses);
+    } catch (error) {
+      console.error("Get businesses error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/businesses", async (req, res) => {
+    try {
+      const validatedData = insertBusinessSchema.parse(req.body);
+      const business = await storage.createBusiness(validatedData);
+      res.status(201).json(business);
+    } catch (error) {
+      console.error("Create business error:", error);
+      res.status(400).json({ message: "Failed to create business" });
+    }
+  });
+
+  app.put("/api/admin/businesses/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const business = await storage.updateBusiness(id, updates);
+      
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      
+      res.json(business);
+    } catch (error) {
+      console.error("Update business error:", error);
+      res.status(400).json({ message: "Failed to update business" });
+    }
+  });
+
+  app.delete("/api/admin/businesses/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteBusiness(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      
+      res.json({ message: "Business deleted successfully" });
+    } catch (error) {
+      console.error("Delete business error:", error);
+      res.status(400).json({ message: "Failed to delete business" });
+    }
+  });
+
+  app.get("/api/admin/analytics", async (req, res) => {
+    try {
+      const analytics = await storage.getAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("Get analytics error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {
