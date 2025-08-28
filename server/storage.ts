@@ -7,13 +7,13 @@ export interface IStorage {
   getAllCategories(): Promise<Category[]>;
   getCategory(id: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
-  
+
   // Customer methods
   getCustomer(id: string): Promise<Customer | undefined>;
   getCustomerByEmail(email: string): Promise<Customer | undefined>;
   getCustomerByPhone(phone: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
-  
+
   // Business methods
   getBusiness(id: string): Promise<Business | undefined>;
   getAllBusinesses(): Promise<Business[]>;
@@ -250,7 +250,7 @@ export class MemStorage implements IStorage {
   async updateBusiness(id: string, updates: Partial<Business>): Promise<Business | undefined> {
     const business = this.businesses.get(id);
     if (!business) return undefined;
-    
+
     const updated = { ...business, ...updates };
     this.businesses.set(id, updated);
     return updated;
@@ -265,7 +265,7 @@ export class MemStorage implements IStorage {
 
   async getPendingQueueByBusiness(businessId: string): Promise<Queue[]> {
     return Array.from(this.queues.values())
-      .filter(q => q.businessId === businessId && q.status === "pending")
+      .filter(q => q.businessId === businessId && q.status === "waiting")
       .sort((a, b) => new Date(a.joinedAt!).getTime() - new Date(b.joinedAt!).getTime());
   }
 
@@ -275,25 +275,32 @@ export class MemStorage implements IStorage {
 
   async addToQueue(item: InsertQueue): Promise<Queue> {
     const id = randomUUID();
-    
-    // For new queue items, they start as pending
+
+    const business = await this.getBusiness(item.businessId);
+
+    // Get current active queue items
+    const currentQueue = await this.getQueueByBusiness(item.businessId);
+    const position = currentQueue.length + 1;
+    const estimatedWait = (position) * (business?.averageServiceTime || 25);
+
+
     const newQueueItem: Queue = {
       ...item,
       id,
       customerId: item.customerId || null,
       serviceType: item.serviceType || null,
       notes: item.notes || null,
-      position: 0, // Will be set when approved
-      estimatedWait: null,
-      estimatedServiceTime: item.estimatedServiceTime || 25,
-      status: item.status || "pending",
+      position: position,
+      estimatedWait: estimatedWait,
+      estimatedServiceTime: item.estimatedServiceTime || business?.averageServiceTime || 25,
+      status: "waiting",
       approved: false,
       approvedAt: null,
       joinedAt: new Date().toISOString(),
       serviceStartedAt: null,
       servedAt: null,
     };
-    
+
     this.queues.set(id, newQueueItem);
     return newQueueItem;
   }
@@ -301,16 +308,16 @@ export class MemStorage implements IStorage {
   async approveQueueItem(id: string, estimatedServiceTime?: number): Promise<Queue | undefined> {
     const item = this.queues.get(id);
     if (!item) return undefined;
-    
+
     // Get current approved queue length to determine position
     const currentQueue = await this.getQueueByBusiness(item.businessId);
     const position = currentQueue.length + 1;
-    
+
     // Calculate estimated wait time
     const business = await this.getBusiness(item.businessId);
     const serviceTime = estimatedServiceTime || business?.averageServiceTime || 25;
     const estimatedWait = (position - 1) * serviceTime;
-    
+
     const updated: Queue = {
       ...item,
       position,
@@ -320,7 +327,7 @@ export class MemStorage implements IStorage {
       approved: true,
       approvedAt: new Date().toISOString(),
     };
-    
+
     this.queues.set(id, updated);
     return updated;
   }
@@ -328,7 +335,7 @@ export class MemStorage implements IStorage {
   async updateQueueItem(id: string, updates: Partial<Queue>): Promise<Queue | undefined> {
     const item = this.queues.get(id);
     if (!item) return undefined;
-    
+
     const updated = { ...item, ...updates };
     this.queues.set(id, updated);
     return updated;
@@ -337,9 +344,9 @@ export class MemStorage implements IStorage {
   async removeFromQueue(id: string): Promise<boolean> {
     const item = this.queues.get(id);
     if (!item) return false;
-    
+
     this.queues.delete(id);
-    
+
     // Reorder remaining queue items
     await this.reorderQueue(item.businessId);
     return true;
@@ -348,11 +355,11 @@ export class MemStorage implements IStorage {
   async reorderQueue(businessId: string): Promise<void> {
     const queueItems = await this.getQueueByBusiness(businessId);
     const business = await this.getBusiness(businessId);
-    
+
     queueItems.forEach(async (item, index) => {
       const newPosition = index + 1;
       const estimatedWait = business ? index * (item.estimatedServiceTime || business.averageServiceTime || 25) : 0;
-      
+
       await this.updateQueueItem(item.id, {
         position: newPosition,
         estimatedWait,

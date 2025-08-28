@@ -113,17 +113,18 @@ export default function CustomerDashboard() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [queryClient]);
 
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
+  const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
     enabled: !!customer,
-    staleTime: 0, // Always consider data stale to ensure fresh fetches
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const { data: businesses, isLoading: businessesLoading } = useQuery<Business[]>({
     queryKey: ["/api/categories", selectedCategory, "businesses"],
     enabled: !!customer && !!selectedCategory,
+    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const handleLogout = () => {
@@ -185,7 +186,7 @@ export default function CustomerDashboard() {
               <p className="text-xl text-muted-foreground">Choose a category to find businesses near you</p>
             </div>
 
-            {categoriesLoading ? (
+            {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Skeleton key={i} className="h-48 w-full" />

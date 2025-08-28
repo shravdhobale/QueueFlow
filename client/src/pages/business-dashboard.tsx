@@ -41,7 +41,7 @@ export default function BusinessDashboard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-    
+
     if (!token || !userData) {
       setLocation("/business/login");
       return;
@@ -55,9 +55,11 @@ export default function BusinessDashboard() {
     }
   }, [setLocation]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: [`/api/dashboard/${user?.businessId}`],
     enabled: !!user?.businessId,
+    refetchInterval: 10000, // Refresh every 10 seconds
+    staleTime: 0, // Always fetch fresh data
   });
 
   useWebSocket({
@@ -72,7 +74,7 @@ export default function BusinessDashboard() {
             queueLength: wsData.queue.length
           }
         }));
-        
+
         setNotificationData({
           title: "Queue Updated",
           message: "Real-time queue changes received"
@@ -237,7 +239,7 @@ export default function BusinessDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Queue Status</p>
-                  <Badge 
+                  <Badge
                     variant={business?.isActive ? "default" : "secondary"}
                     data-testid="badge-queue-status"
                   >
@@ -279,10 +281,10 @@ export default function BusinessDashboard() {
                 </div>
               </div>
 
-              <EnhancedQueueList 
-                approvedQueue={queue || []} 
+              <EnhancedQueueList
+                approvedQueue={queue || []}
                 pendingQueue={dashboardData?.pendingQueue || []}
-                businessId={user.businessId} 
+                businessId={user.businessId}
               />
             </CardContent>
           </Card>

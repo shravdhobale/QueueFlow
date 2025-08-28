@@ -74,17 +74,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // WebSocket server setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
+
   wss.on('connection', (ws, req) => {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const businessId = url.searchParams.get('businessId');
-    
+
     if (businessId) {
       if (!wsClients.has(businessId)) {
         wsClients.set(businessId, new Set());
       }
       wsClients.get(businessId)!.add(ws);
-      
+
       ws.on('close', () => {
         const clients = wsClients.get(businessId);
         if (clients) {
@@ -105,14 +105,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
       }
-      
+
       const queue = await storage.getQueueByBusiness(req.params.id);
       const businessWithQueue = {
         ...business,
         queueCount: queue.length,
         currentWait: queue.length > 0 ? (queue[queue.length - 1].estimatedWait || 0) + (business.averageServiceTime || 25) : 0
       };
-      
+
       res.json(businessWithQueue);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch business" });
@@ -122,19 +122,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/businesses", async (req, res) => {
     try {
       const businesses = await storage.getAllBusinesses();
-      
+
       // Add queue info for each business
       const businessesWithQueue = await Promise.all(
         businesses.map(async (business) => {
           const queue = await storage.getQueueByBusiness(business.id);
+          const activeQueue = queue.filter(item => 
+            item.status === "waiting" || item.status === "approved" || item.status === "in_service"
+          );
           return {
             ...business,
-            queueCount: queue.length,
-            currentWait: queue.length > 0 ? (queue[queue.length - 1].estimatedWait || 0) + (business.averageServiceTime || 25) : 0
+            queueCount: activeQueue.length,
+            currentWait: activeQueue.length > 0 ? activeQueue.length * (business.averageServiceTime || 25) : 0
           };
         })
       );
-      
+
       res.json(businessesWithQueue);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch businesses" });
@@ -166,20 +169,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validated = insertQueueSchema.parse(req.body);
       const queueItem = await storage.addToQueue(validated);
-      
+
       // Broadcast queue update
       broadcastToClients(validated.businessId, {
         type: 'queue_updated',
         queue: await storage.getQueueByBusiness(validated.businessId)
       });
-      
+
       // Send SMS confirmation
       const business = await storage.getBusiness(validated.businessId);
       if (business && queueItem.customerPhone) {
         const message = `Welcome to ${business.name}! You're #${queueItem.position} in line. Estimated wait: ${queueItem.estimatedWait} minutes. Track your status: ${process.env.BASE_URL || 'http://localhost:5000'}/queue/${queueItem.id}`;
         await sendSMSNotification(queueItem.customerPhone, message);
       }
-      
+
       res.status(201).json({ queueItem });
     } catch (error) {
       res.status(400).json({ message: "Failed to join queue" });
@@ -192,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!queueItem) {
         return res.status(404).json({ message: "Queue item not found" });
       }
-      
+
       const business = await storage.getBusiness(queueItem.businessId);
       res.json({ queueItem, business });
     } catch (error) {
@@ -214,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Reorder queue
       await storage.reorderQueue(queueItem.businessId);
-      
+
       // Broadcast queue update
       const updatedQueue = await storage.getQueueByBusiness(queueItem.businessId);
       broadcastToClients(queueItem.businessId, {
@@ -246,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.removeFromQueue(req.params.id);
-      
+
       // Broadcast queue update
       broadcastToClients(queueItem.businessId, {
         type: 'queue_updated',
@@ -264,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, password } = req.body;
       const user = await storage.getUserByUsername(username);
-      
+
       if (!user || !bcrypt.compareSync(password, user.password)) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -285,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validated = insertUserSchema.parse(req.body);
       const hashedPassword = bcrypt.hashSync(validated.password, 10);
-      
+
       const user = await storage.createUser({
         ...validated,
         password: hashedPassword
@@ -311,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       const customer = await storage.getCustomerByEmail(email);
-      
+
       if (!customer || !customer.passwordHash || !bcrypt.compareSync(password, customer.passwordHash)) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -340,7 +343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validated = insertCustomerSchema.parse(req.body);
       const hashedPassword = bcrypt.hashSync(validated.password!, 10);
-      
+
       const customer = await storage.createCustomer({
         ...validated,
         passwordHash: hashedPassword
@@ -379,19 +382,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/categories/:categoryId/businesses", async (req, res) => {
     try {
       const businesses = await storage.getBusinessesByCategory(req.params.categoryId);
-      
+
       // Add queue info for each business
       const businessesWithQueue = await Promise.all(
         businesses.map(async (business) => {
           const queue = await storage.getQueueByBusiness(business.id);
+          const activeQueue = queue.filter(item => 
+            item.status === "waiting" || item.status === "approved" || item.status === "in_service"
+          );
           return {
             ...business,
-            queueCount: queue.length,
-            currentWait: queue.length > 0 ? (queue[queue.length - 1].estimatedWait || 0) + (business.averageServiceTime || 25) : 0
+            queueCount: activeQueue.length,
+            currentWait: activeQueue.length > 0 ? activeQueue.length * (business.averageServiceTime || 25) : 0
           };
         })
       );
-      
+
       res.json(businessesWithQueue);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch businesses" });
@@ -403,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { estimatedServiceTime } = req.body;
       const queueItem = await storage.approveQueueItem(req.params.id, estimatedServiceTime);
-      
+
       if (!queueItem) {
         return res.status(404).json({ message: "Queue item not found" });
       }
@@ -474,12 +480,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const businessId = req.params.id;
       const updates = req.body;
-      
+
       const updatedBusiness = await storage.updateBusiness(businessId, updates);
       if (!updatedBusiness) {
         return res.status(404).json({ message: "Business not found" });
       }
-      
+
       res.json(updatedBusiness);
     } catch (error) {
       res.status(500).json({ message: "Failed to update business" });
@@ -519,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const queue = await storage.getQueueByBusiness(businessId);
       const pendingQueue = await storage.getPendingQueueByBusiness(businessId);
       const business = await storage.getBusiness(businessId);
-      
+
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
       }
