@@ -1,5 +1,6 @@
 import { type Business, type InsertBusiness, type Queue, type InsertQueue, type User, type InsertUser } from "@shared/schema";
 import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // Business methods
@@ -64,8 +65,33 @@ export class MemStorage implements IStorage {
       }
     ];
 
+    const createdBusinesses: Business[] = [];
     for (const business of sampleBusinesses) {
-      await this.createBusiness(business);
+      const created = await this.createBusiness(business);
+      createdBusinesses.push(created);
+    }
+
+    // Create sample users for each business
+    const sampleUsers = [
+      {
+        username: "salon_admin",
+        password: bcrypt.hashSync("password123", 10),
+        businessId: createdBusinesses[0].id, // Elite Hair Salon
+      },
+      {
+        username: "clinic_admin", 
+        password: bcrypt.hashSync("password123", 10),
+        businessId: createdBusinesses[1].id, // Wellness Clinic
+      },
+      {
+        username: "auto_admin",
+        password: bcrypt.hashSync("password123", 10),
+        businessId: createdBusinesses[2].id, // Quick Fix Auto
+      }
+    ];
+
+    for (const user of sampleUsers) {
+      await this.createUser(user);
     }
   }
 
