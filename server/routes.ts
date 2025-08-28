@@ -107,10 +107,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const queue = await storage.getQueueByBusiness(req.params.id);
+      const activeQueue = queue.filter(item => 
+        item.status === "pending" || item.status === "approved" || item.status === "in_service"
+      );
       const businessWithQueue = {
         ...business,
-        queueCount: queue.length,
-        currentWait: queue.length > 0 ? (queue[queue.length - 1].estimatedWait || 0) + (business.averageServiceTime || 25) : 0
+        queueCount: activeQueue.length,
+        currentWait: activeQueue.length > 0 ? activeQueue.length * (business.averageServiceTime || 25) : 0
       };
 
       res.json(businessWithQueue);
@@ -128,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businesses.map(async (business) => {
           const queue = await storage.getQueueByBusiness(business.id);
           const activeQueue = queue.filter(item => 
-            item.status === "waiting" || item.status === "approved" || item.status === "in_service"
+            item.status === "pending" || item.status === "approved" || item.status === "in_service"
           );
           return {
             ...business,
@@ -170,14 +173,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertQueueSchema.parse(req.body);
       const queueItem = await storage.addToQueue(validated);
 
-      // Broadcast queue update
+      // Broadcast queue update with business data
+      const updatedQueue = await storage.getQueueByBusiness(validated.businessId);
+      const business = await storage.getBusiness(validated.businessId);
+      const activeQueue = updatedQueue.filter(item => 
+        item.status === "pending" || item.status === "approved" || item.status === "in_service"
+      );
+      
       broadcastToClients(validated.businessId, {
         type: 'queue_updated',
-        queue: await storage.getQueueByBusiness(validated.businessId)
+        queue: updatedQueue,
+        queueCount: activeQueue.length,
+        currentWait: activeQueue.length > 0 ? activeQueue.length * (business?.averageServiceTime || 25) : 0
       });
 
       // Send SMS confirmation
-      const business = await storage.getBusiness(validated.businessId);
       if (business && queueItem.customerPhone) {
         const message = `Welcome to ${business.name}! You're #${queueItem.position} in line. Estimated wait: ${queueItem.estimatedWait} minutes. Track your status: ${process.env.BASE_URL || 'http://localhost:5000'}/queue/${queueItem.id}`;
         await sendSMSNotification(queueItem.customerPhone, message);
@@ -388,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businesses.map(async (business) => {
           const queue = await storage.getQueueByBusiness(business.id);
           const activeQueue = queue.filter(item => 
-            item.status === "waiting" || item.status === "approved" || item.status === "in_service"
+            item.status === "pending" || item.status === "approved" || item.status === "in_service"
           );
           return {
             ...business,
