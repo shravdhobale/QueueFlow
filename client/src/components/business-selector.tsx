@@ -36,7 +36,7 @@ const getIconBgColor = (type: string) => {
 };
 
 export function BusinessSelector({ onSelect, selectedBusinessId }: BusinessSelectorProps) {
-  const { data: businesses, isLoading } = useQuery({
+  const { data: businesses, isLoading } = useQuery<any[]>({
     queryKey: ["/api/businesses"],
   });
 
@@ -60,7 +60,7 @@ export function BusinessSelector({ onSelect, selectedBusinessId }: BusinessSelec
       <CardContent className="pt-6">
         <h3 className="text-2xl font-semibold text-foreground mb-6">Select Your Business</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {businesses?.map((business: any) => (
+          {(businesses || []).map((business: any) => (
             <div
               key={business.id}
               className={`bg-secondary border border-border rounded-lg p-6 hover:shadow-md transition-all cursor-pointer ${

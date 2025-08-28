@@ -83,6 +83,10 @@ export class MemStorage implements IStorage {
     const newBusiness: Business = {
       ...business,
       id,
+      address: business.address || null,
+      phone: business.phone || null,
+      averageServiceTime: business.averageServiceTime || 25,
+      isActive: business.isActive ?? true,
       createdAt: new Date().toISOString(),
     };
     this.businesses.set(id, newBusiness);
@@ -118,13 +122,16 @@ export class MemStorage implements IStorage {
     
     // Calculate estimated wait time
     const business = await this.getBusiness(item.businessId);
-    const estimatedWait = business ? (position - 1) * business.averageServiceTime : 0;
+    const estimatedWait = business ? (position - 1) * (business.averageServiceTime || 25) : 0;
     
     const newQueueItem: Queue = {
       ...item,
       id,
+      serviceType: item.serviceType || null,
+      notes: item.notes || null,
       position,
       estimatedWait,
+      status: item.status || "waiting",
       joinedAt: new Date().toISOString(),
       servedAt: null,
     };
@@ -159,7 +166,7 @@ export class MemStorage implements IStorage {
     
     queueItems.forEach(async (item, index) => {
       const newPosition = index + 1;
-      const estimatedWait = business ? index * business.averageServiceTime : 0;
+      const estimatedWait = business ? index * (business.averageServiceTime || 25) : 0;
       
       await this.updateQueueItem(item.id, {
         position: newPosition,
@@ -181,7 +188,11 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      businessId: insertUser.businessId || null
+    };
     this.users.set(id, user);
     return user;
   }

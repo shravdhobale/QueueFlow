@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
@@ -16,7 +16,7 @@ if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
   twilio = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 }
 
-interface AuthenticatedRequest extends Express.Request {
+interface AuthenticatedRequest extends Request {
   user?: { id: string; username: string; businessId?: string };
 }
 
@@ -109,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             ...business,
             queueCount: queue.length,
-            currentWait: queue.length > 0 ? queue[queue.length - 1].estimatedWait + business.averageServiceTime : 0
+            currentWait: queue.length > 0 ? (queue[queue.length - 1].estimatedWait || 0) + (business.averageServiceTime || 25) : 0
           };
         })
       );
@@ -215,7 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send SMS to next customer if exists
       if (updatedQueue.length > 0) {
         const nextCustomer = updatedQueue[0];
-        if (nextCustomer.estimatedWait <= 15 && nextCustomer.customerPhone) {
+        if ((nextCustomer.estimatedWait || 0) <= 15 && nextCustomer.customerPhone) {
           const business = await storage.getBusiness(queueItem.businessId);
           const message = `${business?.name}: You're next! Please head over now.`;
           await sendSMSNotification(nextCustomer.customerPhone, message);
